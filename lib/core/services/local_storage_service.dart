@@ -39,6 +39,19 @@ class LocalStorageService {
 
   Future<bool> setBiometricEnabled(bool value) =>
       _prefs.setBool(AppConstants.keyBiometricEnabled, value);
+
+  bool get isPinLockEnabled =>
+      _prefs.getBool(AppConstants.keyPinLockEnabled) ?? false;
+
+  Future<bool> setPinLockEnabled(bool value) =>
+      _prefs.setBool(AppConstants.keyPinLockEnabled, value);
+
+  String? get pinHash => _prefs.getString(AppConstants.keyPinCode);
+
+  Future<bool> setPinHash(String? hash) {
+    if (hash == null) return _prefs.remove(AppConstants.keyPinCode);
+    return _prefs.setString(AppConstants.keyPinCode, hash);
+  }
 }
 
 /// Must be overridden in [bootstrap] before the app runs.

@@ -19,6 +19,9 @@ import 'package:expense_mate/features/goals/presentation/pages/goal_detail_page.
 import 'package:expense_mate/features/goals/presentation/pages/goals_page.dart';
 import 'package:expense_mate/features/notifications/presentation/pages/notifications_page.dart';
 import 'package:expense_mate/features/reports/presentation/pages/reports_page.dart';
+import 'package:expense_mate/features/settings/presentation/pages/profile_page.dart';
+import 'package:expense_mate/features/settings/presentation/pages/security_page.dart';
+import 'package:expense_mate/features/settings/presentation/pages/settings_page.dart';
 import 'package:expense_mate/features/transactions/presentation/pages/add_transaction_page.dart';
 import 'package:expense_mate/features/transactions/presentation/pages/transactions_page.dart';
 import 'package:expense_mate/features/wallet/presentation/pages/add_wallet_page.dart';
@@ -199,6 +202,21 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: RouteNames.notifications,
         parentNavigatorKey: rootNavigatorKey,
         builder: (context, state) => const NotificationsPage(),
+      ),
+      GoRoute(
+        path: RouteNames.settings,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => const SettingsPage(),
+      ),
+      GoRoute(
+        path: RouteNames.profile,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => const ProfilePage(),
+      ),
+      GoRoute(
+        path: RouteNames.security,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => const SecurityPage(),
       ),
     ],
   );

@@ -72,6 +72,10 @@ final signOutUseCaseProvider = Provider<SignOutUseCase>((ref) {
   return SignOutUseCase(ref.watch(authRepositoryProvider));
 });
 
+final deleteAccountUseCaseProvider = Provider<DeleteAccountUseCase>((ref) {
+  return DeleteAccountUseCase(ref.watch(authRepositoryProvider));
+});
+
 final sendEmailVerificationUseCaseProvider =
     Provider<SendEmailVerificationUseCase>((ref) {
   return SendEmailVerificationUseCase(ref.watch(authRepositoryProvider));
