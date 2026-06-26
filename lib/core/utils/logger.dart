@@ -23,4 +23,12 @@ class AppLogger {
       debugPrint('[$tag] INFO: $message');
     }
   }
+
+  static void w(String tag, String message, [Object? error, StackTrace? stack]) {
+    if (kDebugMode) {
+      debugPrint('[$tag] WARN: $message');
+      if (error != null) debugPrint('  Error: $error');
+      if (stack != null) debugPrint('  Stack: $stack');
+    }
+  }
 }

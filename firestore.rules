@@ -11,6 +11,14 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
+    // Allow read when doc is missing (create/sync check) or owned by user.
+    function ownsDocument() {
+      return isAuthenticated() && (
+        !resource.exists ||
+        resource.data.userId == request.auth.uid
+      );
+    }
+
     function isValidUser() {
       return isAuthenticated() &&
         request.resource.data.keys().hasAll(['email']) &&
@@ -27,8 +35,7 @@ service cloud.firestore {
 
     // Wallets — scoped to authenticated user
     match /wallets/{walletId} {
-      allow read: if isAuthenticated() &&
-        resource.data.userId == request.auth.uid;
+      allow read: if ownsDocument();
       allow create: if isAuthenticated() &&
         request.resource.data.userId == request.auth.uid;
       allow update: if isAuthenticated() &&
@@ -40,8 +47,7 @@ service cloud.firestore {
 
     // Transactions
     match /transactions/{transactionId} {
-      allow read: if isAuthenticated() &&
-        resource.data.userId == request.auth.uid;
+      allow read: if ownsDocument();
       allow create: if isAuthenticated() &&
         request.resource.data.userId == request.auth.uid;
       allow update: if isAuthenticated() &&
@@ -53,8 +59,7 @@ service cloud.firestore {
 
     // Categories
     match /categories/{categoryId} {
-      allow read: if isAuthenticated() &&
-        resource.data.userId == request.auth.uid;
+      allow read: if ownsDocument();
       allow create: if isAuthenticated() &&
         request.resource.data.userId == request.auth.uid;
       allow update: if isAuthenticated() &&
@@ -65,8 +70,7 @@ service cloud.firestore {
 
     // Budgets
     match /budgets/{budgetId} {
-      allow read: if isAuthenticated() &&
-        resource.data.userId == request.auth.uid;
+      allow read: if ownsDocument();
       allow create: if isAuthenticated() &&
         request.resource.data.userId == request.auth.uid;
       allow update: if isAuthenticated() &&
@@ -77,8 +81,7 @@ service cloud.firestore {
 
     // Goals
     match /goals/{goalId} {
-      allow read: if isAuthenticated() &&
-        resource.data.userId == request.auth.uid;
+      allow read: if ownsDocument();
       allow create: if isAuthenticated() &&
         request.resource.data.userId == request.auth.uid;
       allow update: if isAuthenticated() &&
@@ -89,8 +92,7 @@ service cloud.firestore {
 
     // Savings
     match /savings/{savingId} {
-      allow read: if isAuthenticated() &&
-        resource.data.userId == request.auth.uid;
+      allow read: if ownsDocument();
       allow create: if isAuthenticated() &&
         request.resource.data.userId == request.auth.uid;
       allow update: if isAuthenticated() &&
@@ -101,8 +103,7 @@ service cloud.firestore {
 
     // Bills
     match /bills/{billId} {
-      allow read: if isAuthenticated() &&
-        resource.data.userId == request.auth.uid;
+      allow read: if ownsDocument();
       allow create: if isAuthenticated() &&
         request.resource.data.userId == request.auth.uid;
       allow update: if isAuthenticated() &&
@@ -113,8 +114,7 @@ service cloud.firestore {
 
     // Notifications
     match /notifications/{notificationId} {
-      allow read: if isAuthenticated() &&
-        resource.data.userId == request.auth.uid;
+      allow read: if ownsDocument();
       allow create: if isAuthenticated() &&
         request.resource.data.userId == request.auth.uid;
       allow update: if isAuthenticated() &&
@@ -125,8 +125,7 @@ service cloud.firestore {
 
     // Settings
     match /settings/{settingId} {
-      allow read: if isAuthenticated() &&
-        resource.data.userId == request.auth.uid;
+      allow read: if ownsDocument();
       allow create: if isAuthenticated() &&
         request.resource.data.userId == request.auth.uid;
       allow update: if isAuthenticated() &&
@@ -137,8 +136,7 @@ service cloud.firestore {
 
     // Receipts (Storage metadata in Firestore)
     match /receipts/{receiptId} {
-      allow read: if isAuthenticated() &&
-        resource.data.userId == request.auth.uid;
+      allow read: if ownsDocument();
       allow create: if isAuthenticated() &&
         request.resource.data.userId == request.auth.uid;
       allow update: if isAuthenticated() &&

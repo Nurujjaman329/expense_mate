@@ -4,9 +4,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:expense_mate/core/constants/app_constants.dart';
 import 'package:expense_mate/core/constants/firestore_constants.dart';
+import 'package:expense_mate/core/data/firestore_mapper.dart';
 import 'package:expense_mate/core/database/app_database.dart';
 import 'package:expense_mate/core/network/network_info.dart';
 import 'package:expense_mate/core/utils/logger.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Offline-first sync engine: pushes pending SQLite data to Firestore.
@@ -36,11 +38,20 @@ class SyncEngine {
   Future<void> syncAll() async {
     if (_isSyncing) return;
 
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      AppLogger.w('SyncEngine', 'Skipped — user not signed in');
+      return;
+    }
+
     final connected = await _networkInfo.isConnected;
-    if (!connected) return;
+    if (!connected) {
+      AppLogger.w('SyncEngine', 'Skipped — no network');
+      return;
+    }
 
     _isSyncing = true;
-    AppLogger.i('SyncEngine', 'Starting sync...');
+    AppLogger.i('SyncEngine', 'Starting sync for ${user.uid}...');
 
     try {
       final pendingItems = await _database.getPendingSyncItems();
@@ -62,13 +73,15 @@ class SyncEngine {
       }
 
       final payload = jsonDecode(item.payload) as Map<String, dynamic>;
+      final firestorePayload = FirestoreMapper.toFirestoreMap(payload);
       final collection = _collectionForEntity(item.entityType);
       final docRef = _firestore.collection(collection).doc(item.entityId);
 
       switch (item.operation) {
         case 'create':
+          await _createDocument(docRef, firestorePayload);
         case 'update':
-          await _upsertWithConflictResolution(docRef, payload);
+          await _upsertWithConflictResolution(docRef, firestorePayload);
         case 'delete':
           await docRef.update({
             FirestoreConstants.isDeleted: true,
@@ -84,6 +97,17 @@ class SyncEngine {
     }
   }
 
+  Future<void> _createDocument(
+    DocumentReference<Map<String, dynamic>> docRef,
+    Map<String, dynamic> localData,
+  ) async {
+    await docRef.set({
+      ...localData,
+      FirestoreConstants.createdAt: FieldValue.serverTimestamp(),
+      FirestoreConstants.updatedAt: FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
   Future<void> _upsertWithConflictResolution(
     DocumentReference<Map<String, dynamic>> docRef,
     Map<String, dynamic> localData,
@@ -91,11 +115,7 @@ class SyncEngine {
     final snapshot = await docRef.get();
 
     if (!snapshot.exists) {
-      await docRef.set({
-        ...localData,
-        FirestoreConstants.createdAt: FieldValue.serverTimestamp(),
-        FirestoreConstants.updatedAt: FieldValue.serverTimestamp(),
-      });
+      await _createDocument(docRef, localData);
       return;
     }
 

@@ -45,12 +45,23 @@ class FirebaseService {
       return true;
     };
 
-    await FirebaseAppCheck.instance.activate(
-      androidProvider:
-          kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
-      appleProvider:
-          kDebugMode ? AppleProvider.debug : AppleProvider.appAttest,
-    );
+    if (!kDebugMode) {
+      try {
+        await FirebaseAppCheck.instance.activate(
+          androidProvider: AndroidProvider.playIntegrity,
+          appleProvider: AppleProvider.appAttest,
+        );
+      } catch (e, stack) {
+        AppLogger.w(
+          'AppCheck',
+          'Activation failed — continuing without App Check',
+          e,
+          stack,
+        );
+      }
+    } else {
+      AppLogger.i('AppCheck', 'Skipped in debug builds');
+    }
 
     final remoteConfig = FirebaseRemoteConfig.instance;
     await remoteConfig.setConfigSettings(

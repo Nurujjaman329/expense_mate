@@ -119,6 +119,11 @@ final userDataInitializerProvider = FutureProvider<void>((ref) async {
   if (user == null) return;
 
   await ref.read(userSeedServiceProvider).initializeUserData(user.id);
+  final resetCount =
+      await ref.read(appDatabaseProvider).resetFailedSyncItems();
+  if (resetCount > 0) {
+    AppLogger.i('UserSeed', 'Reset $resetCount failed sync item(s) to retry');
+  }
   await ref.read(categoryRepositoryProvider).syncFromRemote(user.id);
   await ref.read(walletRepositoryProvider).syncFromRemote(user.id);
   await ref.read(transactionRepositoryProvider).syncFromRemote(user.id);
@@ -126,5 +131,5 @@ final userDataInitializerProvider = FutureProvider<void>((ref) async {
   await ref.read(goalRepositoryProvider).syncFromRemote(user.id);
   await ref.read(billRepositoryProvider).syncFromRemote(user.id);
   await ref.read(notificationRepositoryProvider).syncFromRemote(user.id);
-  ref.read(syncEngineProvider).syncAll();
+  await ref.read(syncEngineProvider).syncAll();
 });

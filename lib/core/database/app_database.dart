@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
+import 'package:expense_mate/core/constants/app_constants.dart';
 import 'package:expense_mate/core/database/tables/bills_table.dart';
 import 'package:expense_mate/core/database/tables/budgets_table.dart';
 import 'package:expense_mate/core/database/tables/categories_table.dart';
@@ -85,12 +86,31 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
-  Future<void> markSyncFailed(int queueId, String error) {
-    return (update(syncQueue)..where((q) => q.id.equals(queueId))).write(
+  Future<void> markSyncFailed(int queueId, String error) async {
+    final item = await (select(syncQueue)
+          ..where((q) => q.id.equals(queueId)))
+        .getSingleOrNull();
+    if (item == null) return;
+
+    final nextRetry = item.retryCount + 1;
+    final exhausted = nextRetry >= AppConstants.syncRetryMaxAttempts;
+
+    await (update(syncQueue)..where((q) => q.id.equals(queueId))).write(
       SyncQueueCompanion(
-        status: const Value('failed'),
+        status: Value(exhausted ? 'failed' : 'pending'),
         errorMessage: Value(error),
-        retryCount: const Value(1),
+        retryCount: Value(nextRetry),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  Future<int> resetFailedSyncItems() async {
+    return (update(syncQueue)..where((q) => q.status.equals('failed'))).write(
+      SyncQueueCompanion(
+        status: const Value('pending'),
+        retryCount: const Value(0),
+        errorMessage: const Value(null),
         updatedAt: Value(DateTime.now()),
       ),
     );
