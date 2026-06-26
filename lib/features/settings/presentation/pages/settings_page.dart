@@ -90,6 +90,15 @@ class SettingsPage extends ConsumerWidget {
             ),
           ),
           const Divider(),
+          _SectionHeader(title: 'Data'),
+          ListTile(
+            leading: const Icon(Icons.file_download_outlined),
+            title: const Text('Export & Backup'),
+            subtitle: const Text('CSV, PDF, backup and restore'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push(RouteNames.dataManagement),
+          ),
+          const Divider(),
           _SectionHeader(title: 'Security'),
           ListTile(
             leading: const Icon(Icons.lock_outline),

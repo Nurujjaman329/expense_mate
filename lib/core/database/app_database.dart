@@ -392,6 +392,40 @@ class AppDatabase extends _$AppDatabase {
       const NotificationsCompanion(isRead: Value(true)),
     );
   }
+
+  // --- Bulk export for backup ---
+
+  Future<List<Budget>> getBudgetsByUser(String userId) {
+    return (select(budgets)
+          ..where(
+            (b) => b.userId.equals(userId) & b.isDeleted.equals(false),
+          ))
+        .get();
+  }
+
+  Future<List<Goal>> getGoalsByUser(String userId) {
+    return (select(goals)
+          ..where(
+            (g) => g.userId.equals(userId) & g.isDeleted.equals(false),
+          ))
+        .get();
+  }
+
+  Future<List<Bill>> getBillsByUser(String userId) {
+    return (select(bills)
+          ..where(
+            (b) => b.userId.equals(userId) & b.isDeleted.equals(false),
+          ))
+        .get();
+  }
+
+  Future<List<Saving>> getSavingsByUser(String userId) {
+    return (select(savings)
+          ..where(
+            (s) => s.userId.equals(userId) & s.isDeleted.equals(false),
+          ))
+        .get();
+  }
 }
 
 LazyDatabase _openConnection() {

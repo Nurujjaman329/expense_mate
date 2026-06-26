@@ -19,6 +19,7 @@ import 'package:expense_mate/features/goals/presentation/pages/goal_detail_page.
 import 'package:expense_mate/features/goals/presentation/pages/goals_page.dart';
 import 'package:expense_mate/features/notifications/presentation/pages/notifications_page.dart';
 import 'package:expense_mate/features/reports/presentation/pages/reports_page.dart';
+import 'package:expense_mate/features/settings/presentation/pages/data_management_page.dart';
 import 'package:expense_mate/features/settings/presentation/pages/profile_page.dart';
 import 'package:expense_mate/features/settings/presentation/pages/security_page.dart';
 import 'package:expense_mate/features/settings/presentation/pages/settings_page.dart';
@@ -217,6 +218,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: RouteNames.security,
         parentNavigatorKey: rootNavigatorKey,
         builder: (context, state) => const SecurityPage(),
+      ),
+      GoRoute(
+        path: RouteNames.dataManagement,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => const DataManagementPage(),
       ),
     ],
   );
