@@ -34,9 +34,9 @@ class MainShellPage extends StatelessWidget {
             label: 'Wallets',
           ),
           NavigationDestination(
-            icon: Icon(Icons.category_outlined),
-            selectedIcon: Icon(Icons.category_rounded),
-            label: 'Categories',
+            icon: Icon(Icons.insights_outlined),
+            selectedIcon: Icon(Icons.insights_rounded),
+            label: 'Reports',
           ),
         ],
       ),

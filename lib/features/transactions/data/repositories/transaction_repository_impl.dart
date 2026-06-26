@@ -312,25 +312,6 @@ final transactionsStreamProvider =
       .watchTransactions(userId, filter: filter);
 });
 
-final monthlySummaryProvider =
-    Provider.family<TransactionSummary, String>((ref, userId) {
-  final transactions = ref.watch(transactionsStreamProvider(userId));
-  return transactions.maybeWhen(
-    data: (list) {
-      final now = DateTime.now();
-      final monthly = list.where(
-        (t) => t.date.year == now.year && t.date.month == now.month,
-      );
-      return computeSummary(monthly.toList());
-    },
-    orElse: () => const TransactionSummary(
-      totalIncome: 0,
-      totalExpense: 0,
-      balance: 0,
-    ),
-  );
-});
-
 final recentTransactionsProvider =
     FutureProvider.family<List<TransactionEntity>, String>((ref, userId) async {
   final result = await ref

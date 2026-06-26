@@ -3,9 +3,15 @@ import 'package:expense_mate/core/routes/route_names.dart';
 import 'package:expense_mate/core/services/user_seed_service.dart';
 import 'package:expense_mate/core/theme/app_colors.dart';
 import 'package:expense_mate/core/utils/formatters.dart';
+import 'package:expense_mate/core/widgets/charts/cash_flow_chart.dart';
+import 'package:expense_mate/core/widgets/charts/category_pie_chart.dart';
+import 'package:expense_mate/core/widgets/charts/income_expense_chart.dart';
+import 'package:expense_mate/core/widgets/charts/weekly_spending_chart.dart';
 import 'package:expense_mate/features/authentication/presentation/providers/auth_provider.dart';
 import 'package:expense_mate/features/categories/data/repositories/category_repository_impl.dart';
 import 'package:expense_mate/features/categories/domain/entities/category_entity.dart';
+import 'package:expense_mate/features/reports/domain/entities/analytics_models.dart';
+import 'package:expense_mate/features/reports/presentation/providers/analytics_provider.dart';
 import 'package:expense_mate/features/transactions/data/repositories/transaction_repository_impl.dart';
 import 'package:expense_mate/features/transactions/presentation/widgets/transaction_tile.dart';
 import 'package:expense_mate/features/wallet/data/repositories/wallet_repository_impl.dart';
@@ -15,7 +21,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-/// Main dashboard with live balance, summary, and recent transactions.
+/// Main dashboard with balance, analytics charts, and recent transactions.
 class DashboardPage extends ConsumerWidget {
   const DashboardPage({super.key});
 
@@ -29,8 +35,9 @@ class DashboardPage extends ConsumerWidget {
 
     final totalBalance =
         userId != null ? ref.watch(totalBalanceProvider(userId)) : 0.0;
-    final summary =
-        userId != null ? ref.watch(monthlySummaryProvider(userId)) : null;
+    final analytics = userId != null
+        ? ref.watch(dashboardAnalyticsProvider(userId))
+        : null;
     final recentAsync = userId != null
         ? ref.watch(recentTransactionsProvider(userId))
         : const AsyncValue.data(<dynamic>[]);
@@ -60,93 +67,148 @@ class DashboardPage extends ConsumerWidget {
             ),
           ],
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.insights_outlined),
+            tooltip: 'Full Reports',
+            onPressed: () => context.go(RouteNames.reports),
+          ),
+        ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _BalanceCard(balance: totalBalance)
-                .animate()
-                .fadeIn()
-                .slideY(begin: 0.1),
-            const SizedBox(height: 20),
-            _SummaryRow(
-              income: summary?.totalIncome ?? 0,
-              expense: summary?.totalExpense ?? 0,
-            ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.1),
-            const SizedBox(height: 24),
-            Text(
-              'Quick Actions',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
+      body: RefreshIndicator(
+        onRefresh: () async {
+          if (userId != null) {
+            ref.invalidate(allTransactionsStreamProvider(userId));
+          }
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _BalanceCard(
+                balance: totalBalance,
+                savingsRate: analytics?.summary.savingsRate ?? 0,
+              ).animate().fadeIn().slideY(begin: 0.1),
+              const SizedBox(height: 20),
+              _SummaryRow(
+                income: analytics?.summary.income ?? 0,
+                expense: analytics?.summary.expense ?? 0,
+              ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.1),
+              const SizedBox(height: 24),
+              _ChartCard(
+                title: 'Weekly Spending',
+                onSeeAll: () => context.go(RouteNames.reports),
+                child: WeeklySpendingChart(
+                  data: analytics?.weeklySpending ?? [],
+                ),
+              ).animate().fadeIn(delay: 150.ms),
+              const SizedBox(height: 16),
+              _ChartCard(
+                title: 'Income vs Expense',
+                child: IncomeExpenseChart(
+                  data: analytics?.incomeVsExpense ??
+                      const IncomeExpenseComparison(
+                        income: 0,
+                        expense: 0,
+                        net: 0,
+                        savingsRate: 0,
+                      ),
+                ),
+              ).animate().fadeIn(delay: 200.ms),
+              const SizedBox(height: 16),
+              if ((analytics?.categoryBreakdown ?? []).isNotEmpty)
+                _ChartCard(
+                  title: 'Top Categories',
+                  child: CategoryPieChart(
+                    data: analytics!.categoryBreakdown,
+                    size: 160,
                   ),
-            ),
-            const SizedBox(height: 12),
-            _QuickActions(
-              onIncome: () => context.push(
-                '${RouteNames.addTransaction}?type=income',
-              ),
-              onExpense: () => context.push(
-                '${RouteNames.addTransaction}?type=expense',
-              ),
-              onTransfer: () => context.push(
-                '${RouteNames.addTransaction}?type=transfer',
-              ),
-            ).animate().fadeIn(delay: 200.ms),
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Recent Transactions',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
+                ).animate().fadeIn(delay: 250.ms),
+              if ((analytics?.categoryBreakdown ?? []).isNotEmpty)
+                const SizedBox(height: 16),
+              _ChartCard(
+                title: 'Cash Flow Trend',
+                child: CashFlowChart(
+                  data: analytics?.monthlyCashFlow ?? [],
+                  height: 180,
                 ),
-                TextButton(
-                  onPressed: () => context.go(RouteNames.transactions),
-                  child: const Text('See All'),
+              ).animate().fadeIn(delay: 300.ms),
+              const SizedBox(height: 24),
+              Text(
+                'Quick Actions',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+              const SizedBox(height: 12),
+              _QuickActions(
+                onIncome: () => context.push(
+                  '${RouteNames.addTransaction}?type=income',
                 ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            recentAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (_, __) => const SizedBox.shrink(),
-              data: (transactions) {
-                if (transactions.isEmpty) {
-                  return const _EmptyTransactionsPlaceholder();
-                }
-                return Column(
-                  children: transactions.map((tx) {
-                    CategoryEntity? category;
-                    for (final c in categories) {
-                      if (c.id == tx.categoryId) {
-                        category = c;
-                        break;
+                onExpense: () => context.push(
+                  '${RouteNames.addTransaction}?type=expense',
+                ),
+                onTransfer: () => context.push(
+                  '${RouteNames.addTransaction}?type=transfer',
+                ),
+              ).animate().fadeIn(delay: 350.ms),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Recent Transactions',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                  TextButton(
+                    onPressed: () => context.go(RouteNames.transactions),
+                    child: const Text('See All'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              recentAsync.when(
+                loading: () =>
+                    const Center(child: CircularProgressIndicator()),
+                error: (error, stack) => const SizedBox.shrink(),
+                data: (transactions) {
+                  if (transactions.isEmpty) {
+                    return const _EmptyTransactionsPlaceholder();
+                  }
+                  return Column(
+                    children: transactions.map((tx) {
+                      CategoryEntity? category;
+                      for (final c in categories) {
+                        if (c.id == tx.categoryId) {
+                          category = c;
+                          break;
+                        }
                       }
-                    }
-                    WalletEntity? wallet;
-                    for (final w in wallets) {
-                      if (w.id == tx.walletId) {
-                        wallet = w;
-                        break;
+                      WalletEntity? wallet;
+                      for (final w in wallets) {
+                        if (w.id == tx.walletId) {
+                          wallet = w;
+                          break;
+                        }
                       }
-                    }
-                    return TransactionTile(
-                      transaction: tx,
-                      category: category,
-                      wallet: wallet,
-                      onTap: () => context.push(
-                        '${RouteNames.addTransaction}?id=${tx.id}',
-                      ),
-                    );
-                  }).toList(),
-                );
-              },
-            ),
-          ],
+                      return TransactionTile(
+                        transaction: tx,
+                        category: category,
+                        wallet: wallet,
+                        onTap: () => context.push(
+                          '${RouteNames.addTransaction}?id=${tx.id}',
+                        ),
+                      );
+                    }).toList(),
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -168,9 +230,10 @@ class DashboardPage extends ConsumerWidget {
 }
 
 class _BalanceCard extends StatelessWidget {
-  const _BalanceCard({required this.balance});
+  const _BalanceCard({required this.balance, required this.savingsRate});
 
   final double balance;
+  final double savingsRate;
 
   @override
   Widget build(BuildContext context) {
@@ -213,14 +276,75 @@ class _BalanceCard extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            AppConstants.appName,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.7),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Text(
+                AppConstants.appName,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.white.withValues(alpha: 0.7),
+                    ),
+              ),
+              const Spacer(),
+              if (savingsRate != 0)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${(savingsRate * 100).toStringAsFixed(0)}% saved',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.white,
+                        ),
+                  ),
                 ),
+            ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ChartCard extends StatelessWidget {
+  const _ChartCard({
+    required this.title,
+    required this.child,
+    this.onSeeAll,
+  });
+
+  final String title;
+  final Widget child;
+  final VoidCallback? onSeeAll;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+                if (onSeeAll != null)
+                  TextButton(onPressed: onSeeAll, child: const Text('Details')),
+              ],
+            ),
+            const SizedBox(height: 12),
+            child,
+          ],
+        ),
       ),
     );
   }

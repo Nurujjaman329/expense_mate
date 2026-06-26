@@ -10,6 +10,7 @@ import 'package:expense_mate/features/authentication/presentation/providers/auth
 import 'package:expense_mate/features/categories/presentation/pages/categories_page.dart';
 import 'package:expense_mate/features/dashboard/presentation/pages/dashboard_page.dart';
 import 'package:expense_mate/features/dashboard/presentation/pages/main_shell_page.dart';
+import 'package:expense_mate/features/reports/presentation/pages/reports_page.dart';
 import 'package:expense_mate/features/transactions/presentation/pages/add_transaction_page.dart';
 import 'package:expense_mate/features/transactions/presentation/pages/transactions_page.dart';
 import 'package:expense_mate/features/wallet/presentation/pages/add_wallet_page.dart';
@@ -111,12 +112,17 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: RouteNames.categories,
-                builder: (context, state) => const CategoriesPage(),
+                path: RouteNames.reports,
+                builder: (context, state) => const ReportsPage(),
               ),
             ],
           ),
         ],
+      ),
+      GoRoute(
+        path: RouteNames.categories,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => const CategoriesPage(),
       ),
       GoRoute(
         path: RouteNames.addTransaction,
