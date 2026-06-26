@@ -1,6 +1,9 @@
 import 'package:expense_mate/core/constants/app_constants.dart';
 import 'package:expense_mate/core/routes/route_names.dart';
-import 'package:expense_mate/core/services/user_seed_service.dart';
+import 'package:expense_mate/features/bills/data/repositories/bill_repository_impl.dart';
+import 'package:expense_mate/features/bills/domain/entities/bill_entity.dart';
+import 'package:expense_mate/features/bills/domain/utils/bill_due_utils.dart';
+import 'package:expense_mate/core/services/notification_service.dart';
 import 'package:expense_mate/core/theme/app_colors.dart';
 import 'package:expense_mate/core/utils/formatters.dart';
 import 'package:expense_mate/core/widgets/charts/cash_flow_chart.dart';
@@ -14,6 +17,8 @@ import 'package:expense_mate/features/categories/data/repositories/category_repo
 import 'package:expense_mate/features/categories/domain/entities/category_entity.dart';
 import 'package:expense_mate/features/goals/data/repositories/goal_repository_impl.dart';
 import 'package:expense_mate/features/goals/domain/entities/goal_entity.dart';
+import 'package:expense_mate/features/notifications/data/repositories/notification_repository_impl.dart';
+import 'package:expense_mate/core/services/user_seed_service.dart';
 import 'package:expense_mate/features/reports/domain/entities/analytics_models.dart';
 import 'package:expense_mate/features/reports/presentation/providers/analytics_provider.dart';
 import 'package:expense_mate/features/transactions/data/repositories/transaction_repository_impl.dart';
@@ -32,6 +37,7 @@ class DashboardPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(userDataInitializerProvider);
+    ref.watch(notificationRefreshProvider);
 
     final user = ref.watch(authStateProvider).valueOrNull;
     final userId = user?.id;
@@ -57,6 +63,12 @@ class DashboardPage extends ConsumerWidget {
     final activeGoals = userId != null
         ? ref.watch(activeGoalsProvider(userId))
         : <GoalEntity>[];
+    final upcomingBills = userId != null
+        ? ref.watch(upcomingBillsProvider(userId))
+        : <BillEntity>[];
+    final unreadCount = userId != null
+        ? ref.watch(unreadNotificationCountProvider(userId))
+        : 0;
 
     return Scaffold(
       appBar: AppBar(
@@ -78,6 +90,41 @@ class DashboardPage extends ConsumerWidget {
           ],
         ),
         actions: [
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.notifications_outlined),
+                tooltip: 'Notifications',
+                onPressed: () => context.push(RouteNames.notifications),
+              ),
+              if (unreadCount > 0)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: AppColors.error,
+                      shape: BoxShape.circle,
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 16,
+                      minHeight: 16,
+                    ),
+                    child: Text(
+                      unreadCount > 9 ? '9+' : '$unreadCount',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+            ],
+          ),
           IconButton(
             icon: const Icon(Icons.insights_outlined),
             tooltip: 'Full Reports',
@@ -118,6 +165,13 @@ class DashboardPage extends ConsumerWidget {
                   goals: activeGoals.take(3).toList(),
                   onSeeAll: () => context.push(RouteNames.goals),
                 ).animate().fadeIn(delay: 130.ms),
+              ],
+              if (upcomingBills.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _UpcomingBillsSection(
+                  bills: upcomingBills.take(3).toList(),
+                  onSeeAll: () => context.push(RouteNames.bills),
+                ).animate().fadeIn(delay: 140.ms),
               ],
               const SizedBox(height: 24),
               _ChartCard(
@@ -178,6 +232,7 @@ class DashboardPage extends ConsumerWidget {
                 ),
                 onBudgets: () => context.push(RouteNames.budgets),
                 onGoals: () => context.push(RouteNames.goals),
+                onBills: () => context.push(RouteNames.bills),
               ).animate().fadeIn(delay: 350.ms),
               const SizedBox(height: 24),
               Row(
@@ -467,6 +522,7 @@ class _QuickActions extends StatelessWidget {
     required this.onTransfer,
     required this.onBudgets,
     required this.onGoals,
+    required this.onBills,
   });
 
   final VoidCallback onIncome;
@@ -474,6 +530,7 @@ class _QuickActions extends StatelessWidget {
   final VoidCallback onTransfer;
   final VoidCallback onBudgets;
   final VoidCallback onGoals;
+  final VoidCallback onBills;
 
   @override
   Widget build(BuildContext context) {
@@ -511,6 +568,12 @@ class _QuickActions extends StatelessWidget {
           icon: Icons.flag_outlined,
           color: AppColors.savings,
           onTap: onGoals,
+        ),
+        _ActionButton(
+          label: 'Bills',
+          icon: Icons.receipt_long_outlined,
+          color: AppColors.info,
+          onTap: onBills,
         ),
       ],
     );
@@ -696,6 +759,80 @@ class _GoalsSection extends StatelessWidget {
                         backgroundColor: color.withValues(alpha: 0.15),
                         color: color,
                       ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _UpcomingBillsSection extends StatelessWidget {
+  const _UpcomingBillsSection({
+    required this.bills,
+    required this.onSeeAll,
+  });
+
+  final List<BillEntity> bills;
+  final VoidCallback onSeeAll;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Upcoming Bills',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+                TextButton(onPressed: onSeeAll, child: const Text('See All')),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ...bills.map((bill) {
+              final overdue = BillDueUtils.isOverdue(bill);
+              final days = BillDueUtils.daysUntilDue(bill);
+              final label = overdue
+                  ? 'Overdue ${days.abs()}d'
+                  : days == 0
+                      ? 'Due today'
+                      : 'Due in ${days}d';
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(bill.title),
+                          Text(
+                            label,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: overdue
+                                  ? AppColors.error
+                                  : AppColors.textSecondaryLight,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      Formatters.currency(bill.amount),
+                      style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                   ],
                 ),

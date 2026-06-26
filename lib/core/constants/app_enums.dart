@@ -140,3 +140,36 @@ enum ThemeModeOption {
         dark => 'Dark',
       };
 }
+
+enum RecurringRule {
+  weekly,
+  monthly,
+  yearly;
+
+  String get label => switch (this) {
+        weekly => 'Weekly',
+        monthly => 'Monthly',
+        yearly => 'Yearly',
+      };
+}
+
+enum NotificationType {
+  billReminder,
+  budgetAlert,
+  goalMilestone,
+  system;
+
+  String get label => switch (this) {
+        billReminder => 'Bill Reminder',
+        budgetAlert => 'Budget Alert',
+        goalMilestone => 'Goal Milestone',
+        system => 'System',
+      };
+
+  String get icon => switch (this) {
+        billReminder => 'receipt_long',
+        budgetAlert => 'pie_chart',
+        goalMilestone => 'flag',
+        system => 'notifications',
+      };
+}

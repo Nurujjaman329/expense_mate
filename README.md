@@ -174,7 +174,7 @@ flutter analyze
 | 2 | Transactions, wallets, categories | Done |
 | 3 | Dashboard with real data & charts | Done |
 | 4 | Budgets, savings, goals | Done |
-| 5 | Reports, bills, notifications | Planned |
+| 5 | Bills, notifications | Done |
 | 6 | Settings, profile, security | Planned |
 | 7 | Export PDF/CSV, backup/restore | Planned |
 

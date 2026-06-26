@@ -7,6 +7,8 @@ import 'package:expense_mate/features/authentication/presentation/pages/onboardi
 import 'package:expense_mate/features/authentication/presentation/pages/register_page.dart';
 import 'package:expense_mate/features/authentication/presentation/pages/splash_page.dart';
 import 'package:expense_mate/features/authentication/presentation/providers/auth_provider.dart';
+import 'package:expense_mate/features/bills/presentation/pages/add_bill_page.dart';
+import 'package:expense_mate/features/bills/presentation/pages/bills_page.dart';
 import 'package:expense_mate/features/budget/presentation/pages/add_budget_page.dart';
 import 'package:expense_mate/features/budget/presentation/pages/budgets_page.dart';
 import 'package:expense_mate/features/categories/presentation/pages/categories_page.dart';
@@ -15,6 +17,7 @@ import 'package:expense_mate/features/dashboard/presentation/pages/main_shell_pa
 import 'package:expense_mate/features/goals/presentation/pages/add_goal_page.dart';
 import 'package:expense_mate/features/goals/presentation/pages/goal_detail_page.dart';
 import 'package:expense_mate/features/goals/presentation/pages/goals_page.dart';
+import 'package:expense_mate/features/notifications/presentation/pages/notifications_page.dart';
 import 'package:expense_mate/features/reports/presentation/pages/reports_page.dart';
 import 'package:expense_mate/features/transactions/presentation/pages/add_transaction_page.dart';
 import 'package:expense_mate/features/transactions/presentation/pages/transactions_page.dart';
@@ -181,6 +184,21 @@ final routerProvider = Provider<GoRouter>((ref) {
           }
           return GoalDetailPage(goalId: id);
         },
+      ),
+      GoRoute(
+        path: RouteNames.bills,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => const BillsPage(),
+      ),
+      GoRoute(
+        path: RouteNames.addBill,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => const AddBillPage(),
+      ),
+      GoRoute(
+        path: RouteNames.notifications,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => const NotificationsPage(),
       ),
     ],
   );

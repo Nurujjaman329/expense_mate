@@ -329,6 +329,69 @@ class AppDatabase extends _$AppDatabase {
       ),
     );
   }
+
+  // --- Bills ---
+
+  Stream<List<Bill>> watchBillsByUser(String userId) {
+    return (select(bills)
+          ..where(
+            (b) => b.userId.equals(userId) & b.isDeleted.equals(false),
+          )
+          ..orderBy([(b) => OrderingTerm.asc(b.dueDate)]))
+        .watch();
+  }
+
+  Future<Bill?> getBillById(String id) {
+    return (select(bills)..where((b) => b.id.equals(id))).getSingleOrNull();
+  }
+
+  Future<void> upsertBill(BillsCompanion entry) {
+    return into(bills).insertOnConflictUpdate(entry);
+  }
+
+  Future<void> softDeleteBill(String id, DateTime updatedAt) {
+    return (update(bills)..where((b) => b.id.equals(id))).write(
+      BillsCompanion(
+        isDeleted: const Value(true),
+        syncStatus: const Value('pending'),
+        updatedAt: Value(updatedAt),
+      ),
+    );
+  }
+
+  // --- Notifications ---
+
+  Stream<List<Notification>> watchNotificationsByUser(String userId) {
+    return (select(notifications)
+          ..where((n) => n.userId.equals(userId))
+          ..orderBy([(n) => OrderingTerm.desc(n.createdAt)]))
+        .watch();
+  }
+
+  Future<int> countUnreadNotifications(String userId) {
+    return (select(notifications)
+          ..where(
+            (n) => n.userId.equals(userId) & n.isRead.equals(false),
+          ))
+        .get()
+        .then((list) => list.length);
+  }
+
+  Future<void> upsertNotification(NotificationsCompanion entry) {
+    return into(notifications).insertOnConflictUpdate(entry);
+  }
+
+  Future<void> markNotificationRead(String id) {
+    return (update(notifications)..where((n) => n.id.equals(id))).write(
+      const NotificationsCompanion(isRead: Value(true)),
+    );
+  }
+
+  Future<void> markAllNotificationsRead(String userId) {
+    return (update(notifications)..where((n) => n.userId.equals(userId))).write(
+      const NotificationsCompanion(isRead: Value(true)),
+    );
+  }
 }
 
 LazyDatabase _openConnection() {

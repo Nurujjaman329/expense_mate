@@ -15,6 +15,7 @@ class RouteNames {
   static const String wallets = '/wallets';
   static const String budgets = '/budgets';
   static const String addBudget = '/budgets/add';
+  static const String addBill = '/bills/add';
   static const String savings = '/savings';
   static const String goals = '/goals';
   static const String addGoal = '/goals/add';
