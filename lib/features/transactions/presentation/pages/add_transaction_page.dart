@@ -178,7 +178,14 @@ class _AddTransactionPageState extends ConsumerState<AddTransactionPage> {
     final categories = categoriesAsync.valueOrNull ?? [];
 
     if (_walletId == null && wallets.isNotEmpty) {
-      _walletId = wallets.firstWhere((w) => w.isDefault, orElse: () => wallets.first).id;
+      var selected = wallets.first;
+      for (final wallet in wallets) {
+        if (wallet.isDefault) {
+          selected = wallet;
+          break;
+        }
+      }
+      _walletId = selected.id;
     }
 
     return Scaffold(

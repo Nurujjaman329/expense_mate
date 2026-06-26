@@ -46,6 +46,8 @@ class _AppLockGateState extends ConsumerState<AppLockGate>
     final pinEnabled = ref.watch(isAppLockEnabledProvider);
 
     return Stack(
+      alignment: Alignment.topLeft,
+      fit: StackFit.expand,
       children: [
         widget.child,
         if (user != null && pinEnabled && isLocked)

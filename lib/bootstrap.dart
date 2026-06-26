@@ -10,10 +10,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 /// Initializes Firebase, database, and sync before launching the app.
 Future<void> bootstrap() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
   runZonedGuarded(
     () async {
+      WidgetsFlutterBinding.ensureInitialized();
+
       await FirebaseService.initialize();
       final prefs = await SharedPreferences.getInstance();
 

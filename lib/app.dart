@@ -18,25 +18,26 @@ class ExpenseMateApp extends ConsumerWidget {
     final themeMode = ref.watch(themeModeProvider);
     final languageCode = ref.watch(settingsProvider).languageCode;
 
-    return AppLockGate(
-      child: MaterialApp.router(
-        title: AppConstants.appName,
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
-        themeMode: themeMode,
-        locale: Locale(languageCode),
-        routerConfig: router,
-        localizationsDelegates: const [
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: const [
-          Locale('en'),
-          Locale('bn'),
-        ],
-      ),
+    return MaterialApp.router(
+      title: AppConstants.appName,
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: themeMode,
+      locale: Locale(languageCode),
+      routerConfig: router,
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('en'),
+        Locale('bn'),
+      ],
+      builder: (context, child) {
+        return AppLockGate(child: child ?? const SizedBox.shrink());
+      },
     );
   }
 }
