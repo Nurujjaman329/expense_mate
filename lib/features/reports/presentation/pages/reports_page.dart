@@ -32,6 +32,16 @@ class ReportsPage extends ConsumerWidget {
         title: const Text('Reports & Analytics'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.pie_chart_outline),
+            tooltip: 'Budgets',
+            onPressed: () => context.push(RouteNames.budgets),
+          ),
+          IconButton(
+            icon: const Icon(Icons.flag_outlined),
+            tooltip: 'Goals',
+            onPressed: () => context.push(RouteNames.goals),
+          ),
+          IconButton(
             icon: const Icon(Icons.category_outlined),
             tooltip: 'Categories',
             onPressed: () => context.push(RouteNames.categories),

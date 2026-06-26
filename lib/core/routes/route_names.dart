@@ -14,8 +14,11 @@ class RouteNames {
   static const String addWallet = '/wallets/add';
   static const String wallets = '/wallets';
   static const String budgets = '/budgets';
+  static const String addBudget = '/budgets/add';
   static const String savings = '/savings';
   static const String goals = '/goals';
+  static const String addGoal = '/goals/add';
+  static const String goalDetail = '/goals/detail';
   static const String reports = '/reports';
   static const String categories = '/categories';
   static const String bills = '/bills';

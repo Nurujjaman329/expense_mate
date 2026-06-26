@@ -73,6 +73,50 @@ enum BudgetPeriod {
       };
 }
 
+enum GoalType {
+  emergencyFund,
+  vacation,
+  house,
+  car,
+  education,
+  wedding,
+  investment,
+  other;
+
+  String get label => switch (this) {
+        emergencyFund => 'Emergency Fund',
+        vacation => 'Vacation',
+        house => 'House',
+        car => 'Car',
+        education => 'Education',
+        wedding => 'Wedding',
+        investment => 'Investment',
+        other => 'Other',
+      };
+
+  String get icon => switch (this) {
+        emergencyFund => 'shield',
+        vacation => 'flight',
+        house => 'home',
+        car => 'directions_car',
+        education => 'school',
+        wedding => 'favorite',
+        investment => 'trending_up',
+        other => 'savings',
+      };
+
+  int get color => switch (this) {
+        emergencyFund => 0xFFF44336,
+        vacation => 0xFF2196F3,
+        house => 0xFF4CAF50,
+        car => 0xFF9C27B0,
+        education => 0xFF009688,
+        wedding => 0xFFE91E63,
+        investment => 0xFFFF9800,
+        other => 0xFF607D8B,
+      };
+}
+
 enum SyncStatus {
   synced,
   pending,

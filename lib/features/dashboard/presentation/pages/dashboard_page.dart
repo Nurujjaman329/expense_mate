@@ -8,8 +8,12 @@ import 'package:expense_mate/core/widgets/charts/category_pie_chart.dart';
 import 'package:expense_mate/core/widgets/charts/income_expense_chart.dart';
 import 'package:expense_mate/core/widgets/charts/weekly_spending_chart.dart';
 import 'package:expense_mate/features/authentication/presentation/providers/auth_provider.dart';
+import 'package:expense_mate/features/budget/data/repositories/budget_repository_impl.dart';
+import 'package:expense_mate/features/budget/domain/entities/budget_entity.dart';
 import 'package:expense_mate/features/categories/data/repositories/category_repository_impl.dart';
 import 'package:expense_mate/features/categories/domain/entities/category_entity.dart';
+import 'package:expense_mate/features/goals/data/repositories/goal_repository_impl.dart';
+import 'package:expense_mate/features/goals/domain/entities/goal_entity.dart';
 import 'package:expense_mate/features/reports/domain/entities/analytics_models.dart';
 import 'package:expense_mate/features/reports/presentation/providers/analytics_provider.dart';
 import 'package:expense_mate/features/transactions/data/repositories/transaction_repository_impl.dart';
@@ -47,6 +51,12 @@ class DashboardPage extends ConsumerWidget {
     final wallets = userId != null
         ? ref.watch(walletsStreamProvider(userId)).valueOrNull ?? []
         : <WalletEntity>[];
+    final budgetAlerts = userId != null
+        ? ref.watch(budgetAlertsProvider(userId))
+        : <BudgetProgress>[];
+    final activeGoals = userId != null
+        ? ref.watch(activeGoalsProvider(userId))
+        : <GoalEntity>[];
 
     return Scaffold(
       appBar: AppBar(
@@ -96,6 +106,19 @@ class DashboardPage extends ConsumerWidget {
                 income: analytics?.summary.income ?? 0,
                 expense: analytics?.summary.expense ?? 0,
               ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.1),
+              if (budgetAlerts.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _BudgetAlertsSection(alerts: budgetAlerts)
+                    .animate()
+                    .fadeIn(delay: 120.ms),
+              ],
+              if (activeGoals.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _GoalsSection(
+                  goals: activeGoals.take(3).toList(),
+                  onSeeAll: () => context.push(RouteNames.goals),
+                ).animate().fadeIn(delay: 130.ms),
+              ],
               const SizedBox(height: 24),
               _ChartCard(
                 title: 'Weekly Spending',
@@ -153,6 +176,8 @@ class DashboardPage extends ConsumerWidget {
                 onTransfer: () => context.push(
                   '${RouteNames.addTransaction}?type=transfer',
                 ),
+                onBudgets: () => context.push(RouteNames.budgets),
+                onGoals: () => context.push(RouteNames.goals),
               ).animate().fadeIn(delay: 350.ms),
               const SizedBox(height: 24),
               Row(
@@ -440,16 +465,22 @@ class _QuickActions extends StatelessWidget {
     required this.onIncome,
     required this.onExpense,
     required this.onTransfer,
+    required this.onBudgets,
+    required this.onGoals,
   });
 
   final VoidCallback onIncome;
   final VoidCallback onExpense;
   final VoidCallback onTransfer;
+  final VoidCallback onBudgets;
+  final VoidCallback onGoals;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      alignment: WrapAlignment.spaceAround,
       children: [
         _ActionButton(
           label: 'Income',
@@ -468,6 +499,18 @@ class _QuickActions extends StatelessWidget {
           icon: Icons.swap_horiz_rounded,
           color: AppColors.transfer,
           onTap: onTransfer,
+        ),
+        _ActionButton(
+          label: 'Budgets',
+          icon: Icons.pie_chart_outline,
+          color: AppColors.warning,
+          onTap: onBudgets,
+        ),
+        _ActionButton(
+          label: 'Goals',
+          icon: Icons.flag_outlined,
+          color: AppColors.savings,
+          onTap: onGoals,
         ),
       ],
     );
@@ -537,6 +580,127 @@ class _EmptyTransactionsPlaceholder extends StatelessWidget {
                   ),
               textAlign: TextAlign.center,
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BudgetAlertsSection extends StatelessWidget {
+  const _BudgetAlertsSection({required this.alerts});
+
+  final List<BudgetProgress> alerts;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: AppColors.warning.withValues(alpha: 0.08),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.warning_amber_rounded, color: AppColors.warning),
+                const SizedBox(width: 8),
+                Text(
+                  'Budget Alerts',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ...alerts.take(3).map((alert) {
+              final label = alert.isOverBudget
+                  ? '${alert.budget.name} is over budget'
+                  : '${alert.budget.name} at ${(alert.percentage * 100).toInt()}%';
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  children: [
+                    Expanded(child: Text(label)),
+                    Text(
+                      Formatters.currency(alert.spent),
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GoalsSection extends StatelessWidget {
+  const _GoalsSection({required this.goals, required this.onSeeAll});
+
+  final List<GoalEntity> goals;
+  final VoidCallback onSeeAll;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Savings Goals',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+                TextButton(onPressed: onSeeAll, child: const Text('See All')),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ...goals.map((goal) {
+              final color = goal.color != null
+                  ? Color(goal.color!)
+                  : Color(goal.type.color);
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(goal.name),
+                        Text(
+                          '${(goal.progress * 100).toInt()}%',
+                          style: TextStyle(
+                            color: color,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: goal.progress,
+                        minHeight: 6,
+                        backgroundColor: color.withValues(alpha: 0.15),
+                        color: color,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
           ],
         ),
       ),

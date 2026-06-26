@@ -246,6 +246,89 @@ class AppDatabase extends _$AppDatabase {
         .get()
         .then((list) => list.length);
   }
+
+  // --- Budgets ---
+
+  Stream<List<Budget>> watchBudgetsByUser(String userId) {
+    return (select(budgets)
+          ..where(
+            (b) => b.userId.equals(userId) & b.isDeleted.equals(false),
+          )
+          ..orderBy([(b) => OrderingTerm.desc(b.createdAt)]))
+        .watch();
+  }
+
+  Future<Budget?> getBudgetById(String id) {
+    return (select(budgets)..where((b) => b.id.equals(id))).getSingleOrNull();
+  }
+
+  Future<void> upsertBudget(BudgetsCompanion entry) {
+    return into(budgets).insertOnConflictUpdate(entry);
+  }
+
+  Future<void> softDeleteBudget(String id, DateTime updatedAt) {
+    return (update(budgets)..where((b) => b.id.equals(id))).write(
+      BudgetsCompanion(
+        isDeleted: const Value(true),
+        syncStatus: const Value('pending'),
+        updatedAt: Value(updatedAt),
+      ),
+    );
+  }
+
+  // --- Goals ---
+
+  Stream<List<Goal>> watchGoalsByUser(String userId) {
+    return (select(goals)
+          ..where(
+            (g) => g.userId.equals(userId) & g.isDeleted.equals(false),
+          )
+          ..orderBy([(g) => OrderingTerm.desc(g.createdAt)]))
+        .watch();
+  }
+
+  Future<Goal?> getGoalById(String id) {
+    return (select(goals)..where((g) => g.id.equals(id))).getSingleOrNull();
+  }
+
+  Future<void> upsertGoal(GoalsCompanion entry) {
+    return into(goals).insertOnConflictUpdate(entry);
+  }
+
+  Future<void> softDeleteGoal(String id, DateTime updatedAt) {
+    return (update(goals)..where((g) => g.id.equals(id))).write(
+      GoalsCompanion(
+        isDeleted: const Value(true),
+        syncStatus: const Value('pending'),
+        updatedAt: Value(updatedAt),
+      ),
+    );
+  }
+
+  // --- Savings ---
+
+  Stream<List<Saving>> watchSavingsByGoal(String goalId) {
+    return (select(savings)
+          ..where(
+            (s) => s.goalId.equals(goalId) & s.isDeleted.equals(false),
+          )
+          ..orderBy([(s) => OrderingTerm.desc(s.createdAt)]))
+        .watch();
+  }
+
+  Future<void> upsertSaving(SavingsCompanion entry) {
+    return into(savings).insertOnConflictUpdate(entry);
+  }
+
+  Future<void> softDeleteSaving(String id, DateTime updatedAt) {
+    return (update(savings)..where((s) => s.id.equals(id))).write(
+      SavingsCompanion(
+        isDeleted: const Value(true),
+        syncStatus: const Value('pending'),
+        updatedAt: Value(updatedAt),
+      ),
+    );
+  }
 }
 
 LazyDatabase _openConnection() {

@@ -173,7 +173,7 @@ flutter analyze
 | 1 | Foundation, auth, core UI, Drift DB, sync engine | Done |
 | 2 | Transactions, wallets, categories | Done |
 | 3 | Dashboard with real data & charts | Done |
-| 4 | Budgets, savings, goals | Planned |
+| 4 | Budgets, savings, goals | Done |
 | 5 | Reports, bills, notifications | Planned |
 | 6 | Settings, profile, security | Planned |
 | 7 | Export PDF/CSV, backup/restore | Planned |

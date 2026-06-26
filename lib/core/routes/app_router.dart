@@ -7,9 +7,14 @@ import 'package:expense_mate/features/authentication/presentation/pages/onboardi
 import 'package:expense_mate/features/authentication/presentation/pages/register_page.dart';
 import 'package:expense_mate/features/authentication/presentation/pages/splash_page.dart';
 import 'package:expense_mate/features/authentication/presentation/providers/auth_provider.dart';
+import 'package:expense_mate/features/budget/presentation/pages/add_budget_page.dart';
+import 'package:expense_mate/features/budget/presentation/pages/budgets_page.dart';
 import 'package:expense_mate/features/categories/presentation/pages/categories_page.dart';
 import 'package:expense_mate/features/dashboard/presentation/pages/dashboard_page.dart';
 import 'package:expense_mate/features/dashboard/presentation/pages/main_shell_page.dart';
+import 'package:expense_mate/features/goals/presentation/pages/add_goal_page.dart';
+import 'package:expense_mate/features/goals/presentation/pages/goal_detail_page.dart';
+import 'package:expense_mate/features/goals/presentation/pages/goals_page.dart';
 import 'package:expense_mate/features/reports/presentation/pages/reports_page.dart';
 import 'package:expense_mate/features/transactions/presentation/pages/add_transaction_page.dart';
 import 'package:expense_mate/features/transactions/presentation/pages/transactions_page.dart';
@@ -143,6 +148,39 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: RouteNames.addWallet,
         parentNavigatorKey: rootNavigatorKey,
         builder: (context, state) => const AddWalletPage(),
+      ),
+      GoRoute(
+        path: RouteNames.budgets,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => const BudgetsPage(),
+      ),
+      GoRoute(
+        path: RouteNames.addBudget,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => const AddBudgetPage(),
+      ),
+      GoRoute(
+        path: RouteNames.goals,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => const GoalsPage(),
+      ),
+      GoRoute(
+        path: RouteNames.addGoal,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => const AddGoalPage(),
+      ),
+      GoRoute(
+        path: RouteNames.goalDetail,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) {
+          final id = state.uri.queryParameters['id'];
+          if (id == null || id.isEmpty) {
+            return const Scaffold(
+              body: Center(child: Text('Goal ID required')),
+            );
+          }
+          return GoalDetailPage(goalId: id);
+        },
       ),
     ],
   );
