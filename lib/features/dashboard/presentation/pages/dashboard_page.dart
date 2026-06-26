@@ -1,20 +1,45 @@
 import 'package:expense_mate/core/constants/app_constants.dart';
+import 'package:expense_mate/core/routes/route_names.dart';
+import 'package:expense_mate/core/services/user_seed_service.dart';
 import 'package:expense_mate/core/theme/app_colors.dart';
 import 'package:expense_mate/core/utils/formatters.dart';
 import 'package:expense_mate/features/authentication/presentation/providers/auth_provider.dart';
+import 'package:expense_mate/features/categories/data/repositories/category_repository_impl.dart';
+import 'package:expense_mate/features/categories/domain/entities/category_entity.dart';
+import 'package:expense_mate/features/transactions/data/repositories/transaction_repository_impl.dart';
+import 'package:expense_mate/features/transactions/presentation/widgets/transaction_tile.dart';
+import 'package:expense_mate/features/wallet/data/repositories/wallet_repository_impl.dart';
+import 'package:expense_mate/features/wallet/domain/entities/wallet_entity.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
-/// Main dashboard — financial overview hub (expanded in Phase 2).
+/// Main dashboard with live balance, summary, and recent transactions.
 class DashboardPage extends ConsumerWidget {
   const DashboardPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(userDataInitializerProvider);
+
     final user = ref.watch(authStateProvider).valueOrNull;
-    final greeting = _greeting();
+    final userId = user?.id;
     final name = user?.displayName?.split(' ').first ?? 'there';
+
+    final totalBalance =
+        userId != null ? ref.watch(totalBalanceProvider(userId)) : 0.0;
+    final summary =
+        userId != null ? ref.watch(monthlySummaryProvider(userId)) : null;
+    final recentAsync = userId != null
+        ? ref.watch(recentTransactionsProvider(userId))
+        : const AsyncValue.data(<dynamic>[]);
+    final categories = userId != null
+        ? ref.watch(categoriesStreamProvider(userId)).valueOrNull ?? []
+        : <CategoryEntity>[];
+    final wallets = userId != null
+        ? ref.watch(walletsStreamProvider(userId)).valueOrNull ?? []
+        : <WalletEntity>[];
 
     return Scaffold(
       appBar: AppBar(
@@ -22,7 +47,7 @@ class DashboardPage extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              greeting,
+              _greeting(),
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: AppColors.textSecondaryLight,
                   ),
@@ -35,26 +60,21 @@ class DashboardPage extends ConsumerWidget {
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const CircleAvatar(
-              radius: 18,
-              backgroundColor: AppColors.primary,
-              child: Icon(Icons.person, color: Colors.white, size: 20),
-            ),
-            onPressed: () {},
-          ),
-          const SizedBox(width: 8),
-        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _BalanceCard().animate().fadeIn().slideY(begin: 0.1),
+            _BalanceCard(balance: totalBalance)
+                .animate()
+                .fadeIn()
+                .slideY(begin: 0.1),
             const SizedBox(height: 20),
-            _SummaryRow().animate().fadeIn(delay: 100.ms).slideY(begin: 0.1),
+            _SummaryRow(
+              income: summary?.totalIncome ?? 0,
+              expense: summary?.totalExpense ?? 0,
+            ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.1),
             const SizedBox(height: 24),
             Text(
               'Quick Actions',
@@ -63,49 +83,76 @@ class DashboardPage extends ConsumerWidget {
                   ),
             ),
             const SizedBox(height: 12),
-            _QuickActions().animate().fadeIn(delay: 200.ms),
+            _QuickActions(
+              onIncome: () => context.push(
+                '${RouteNames.addTransaction}?type=income',
+              ),
+              onExpense: () => context.push(
+                '${RouteNames.addTransaction}?type=expense',
+              ),
+              onTransfer: () => context.push(
+                '${RouteNames.addTransaction}?type=transfer',
+              ),
+            ).animate().fadeIn(delay: 200.ms),
             const SizedBox(height: 24),
-            Text(
-              'Recent Transactions',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Recent Transactions',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+                TextButton(
+                  onPressed: () => context.go(RouteNames.transactions),
+                  child: const Text('See All'),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            _EmptyTransactionsPlaceholder()
-                .animate()
-                .fadeIn(delay: 300.ms),
+            const SizedBox(height: 8),
+            recentAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (_, __) => const SizedBox.shrink(),
+              data: (transactions) {
+                if (transactions.isEmpty) {
+                  return const _EmptyTransactionsPlaceholder();
+                }
+                return Column(
+                  children: transactions.map((tx) {
+                    CategoryEntity? category;
+                    for (final c in categories) {
+                      if (c.id == tx.categoryId) {
+                        category = c;
+                        break;
+                      }
+                    }
+                    WalletEntity? wallet;
+                    for (final w in wallets) {
+                      if (w.id == tx.walletId) {
+                        wallet = w;
+                        break;
+                      }
+                    }
+                    return TransactionTile(
+                      transaction: tx,
+                      category: category,
+                      wallet: wallet,
+                      onTap: () => context.push(
+                        '${RouteNames.addTransaction}?id=${tx.id}',
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
+            ),
           ],
         ),
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: 0,
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.dashboard_outlined),
-            selectedIcon: Icon(Icons.dashboard_rounded),
-            label: 'Home',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.receipt_long_outlined),
-            selectedIcon: Icon(Icons.receipt_long_rounded),
-            label: 'Transactions',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.pie_chart_outline_rounded),
-            selectedIcon: Icon(Icons.pie_chart_rounded),
-            label: 'Reports',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings_rounded),
-            label: 'Settings',
-          ),
-        ],
-        onDestinationSelected: (_) {},
-      ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {},
+        onPressed: () => context.push(
+          '${RouteNames.addTransaction}?type=expense',
+        ),
         icon: const Icon(Icons.add),
         label: const Text('Add'),
       ),
@@ -121,6 +168,10 @@ class DashboardPage extends ConsumerWidget {
 }
 
 class _BalanceCard extends StatelessWidget {
+  const _BalanceCard({required this.balance});
+
+  final double balance;
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -130,7 +181,11 @@ class _BalanceCard extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [AppColors.primaryDark, AppColors.primary, AppColors.secondary],
+          colors: [
+            AppColors.primaryDark,
+            AppColors.primary,
+            AppColors.secondary,
+          ],
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
@@ -152,7 +207,7 @@ class _BalanceCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            Formatters.currency(0),
+            Formatters.currency(balance),
             style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -172,30 +227,41 @@ class _BalanceCard extends StatelessWidget {
 }
 
 class _SummaryRow extends StatelessWidget {
+  const _SummaryRow({required this.income, required this.expense});
+
+  final double income;
+  final double expense;
+
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(child: _SummaryTile(
-          label: 'Income',
-          amount: Formatters.currency(0),
-          color: AppColors.income,
-          icon: Icons.arrow_downward_rounded,
-        )),
+        Expanded(
+          child: _SummaryTile(
+            label: 'Income',
+            amount: Formatters.currency(income),
+            color: AppColors.income,
+            icon: Icons.arrow_downward_rounded,
+          ),
+        ),
         const SizedBox(width: 12),
-        Expanded(child: _SummaryTile(
-          label: 'Expense',
-          amount: Formatters.currency(0),
-          color: AppColors.expense,
-          icon: Icons.arrow_upward_rounded,
-        )),
+        Expanded(
+          child: _SummaryTile(
+            label: 'Expense',
+            amount: Formatters.currency(expense),
+            color: AppColors.expense,
+            icon: Icons.arrow_upward_rounded,
+          ),
+        ),
         const SizedBox(width: 12),
-        Expanded(child: _SummaryTile(
-          label: 'Savings',
-          amount: Formatters.currency(0),
-          color: AppColors.savings,
-          icon: Icons.savings_outlined,
-        )),
+        Expanded(
+          child: _SummaryTile(
+            label: 'Net',
+            amount: Formatters.currency(income - expense),
+            color: AppColors.savings,
+            icon: Icons.savings_outlined,
+          ),
+        ),
       ],
     );
   }
@@ -246,40 +312,82 @@ class _SummaryTile extends StatelessWidget {
 }
 
 class _QuickActions extends StatelessWidget {
+  const _QuickActions({
+    required this.onIncome,
+    required this.onExpense,
+    required this.onTransfer,
+  });
+
+  final VoidCallback onIncome;
+  final VoidCallback onExpense;
+  final VoidCallback onTransfer;
+
   @override
   Widget build(BuildContext context) {
-    final actions = [
-      ('Income', Icons.add_circle_outline, AppColors.income),
-      ('Expense', Icons.remove_circle_outline, AppColors.expense),
-      ('Transfer', Icons.swap_horiz_rounded, AppColors.transfer),
-      ('Budget', Icons.pie_chart_outline, AppColors.warning),
-    ];
-
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
-      children: actions
-          .map(
-            (a) => Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: a.$3.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Icon(a.$2, color: a.$3),
-                ),
-                const SizedBox(height: 8),
-                Text(a.$1, style: Theme.of(context).textTheme.bodySmall),
-              ],
+      children: [
+        _ActionButton(
+          label: 'Income',
+          icon: Icons.add_circle_outline,
+          color: AppColors.income,
+          onTap: onIncome,
+        ),
+        _ActionButton(
+          label: 'Expense',
+          icon: Icons.remove_circle_outline,
+          color: AppColors.expense,
+          onTap: onExpense,
+        ),
+        _ActionButton(
+          label: 'Transfer',
+          icon: Icons.swap_horiz_rounded,
+          color: AppColors.transfer,
+          onTap: onTransfer,
+        ),
+      ],
+    );
+  }
+}
+
+class _ActionButton extends StatelessWidget {
+  const _ActionButton({
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(14),
             ),
-          )
-          .toList(),
+            child: Icon(icon, color: color),
+          ),
+          const SizedBox(height: 8),
+          Text(label, style: Theme.of(context).textTheme.bodySmall),
+        ],
+      ),
     );
   }
 }
 
 class _EmptyTransactionsPlaceholder extends StatelessWidget {
+  const _EmptyTransactionsPlaceholder();
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -299,7 +407,7 @@ class _EmptyTransactionsPlaceholder extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              'Add your first transaction to get started',
+              'Tap + to add your first transaction',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: AppColors.textSecondaryLight,
                   ),

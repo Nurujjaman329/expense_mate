@@ -122,6 +122,40 @@ class AppDatabase extends _$AppDatabase {
     return into(transactions).insertOnConflictUpdate(entry);
   }
 
+  Future<Transaction?> getTransactionById(String id) {
+    return (select(transactions)..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+  }
+
+  Stream<List<Transaction>> watchTransactionsByUser(String userId) {
+    return (select(transactions)
+          ..where(
+            (t) => t.userId.equals(userId) & t.isDeleted.equals(false),
+          )
+          ..orderBy([(t) => OrderingTerm.desc(t.date)]))
+        .watch();
+  }
+
+  Future<List<Transaction>> getRecentTransactions(String userId, int limit) {
+    return (select(transactions)
+          ..where(
+            (t) => t.userId.equals(userId) & t.isDeleted.equals(false),
+          )
+          ..orderBy([(t) => OrderingTerm.desc(t.date)])
+          ..limit(limit))
+        .get();
+  }
+
+  Future<void> softDeleteTransaction(String id, DateTime updatedAt) {
+    return (update(transactions)..where((t) => t.id.equals(id))).write(
+      TransactionsCompanion(
+        isDeleted: const Value(true),
+        syncStatus: const Value('pending'),
+        updatedAt: Value(updatedAt),
+      ),
+    );
+  }
+
   // --- Wallets ---
 
   Future<List<Wallet>> getWalletsByUser(String userId) {
@@ -136,6 +170,39 @@ class AppDatabase extends _$AppDatabase {
     return into(wallets).insertOnConflictUpdate(entry);
   }
 
+  Future<Wallet?> getWalletById(String id) {
+    return (select(wallets)..where((w) => w.id.equals(id))).getSingleOrNull();
+  }
+
+  Stream<List<Wallet>> watchWalletsByUser(String userId) {
+    return (select(wallets)
+          ..where(
+            (w) => w.userId.equals(userId) & w.isDeleted.equals(false),
+          )
+          ..orderBy([(w) => OrderingTerm.desc(w.isDefault)]))
+        .watch();
+  }
+
+  Future<void> updateWalletBalance(String id, double balance, DateTime updatedAt) {
+    return (update(wallets)..where((w) => w.id.equals(id))).write(
+      WalletsCompanion(
+        balance: Value(balance),
+        syncStatus: const Value('pending'),
+        updatedAt: Value(updatedAt),
+      ),
+    );
+  }
+
+  Future<void> softDeleteWallet(String id, DateTime updatedAt) {
+    return (update(wallets)..where((w) => w.id.equals(id))).write(
+      WalletsCompanion(
+        isDeleted: const Value(true),
+        syncStatus: const Value('pending'),
+        updatedAt: Value(updatedAt),
+      ),
+    );
+  }
+
   // --- Categories ---
 
   Future<List<Category>> getCategoriesByUser(String userId) {
@@ -148,6 +215,36 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> upsertCategory(CategoriesCompanion entry) {
     return into(categories).insertOnConflictUpdate(entry);
+  }
+
+  Stream<List<Category>> watchCategoriesByUser(String userId) {
+    return (select(categories)
+          ..where(
+            (c) => c.userId.equals(userId) & c.isDeleted.equals(false),
+          )
+          ..orderBy([(c) => OrderingTerm.asc(c.name)]))
+        .watch();
+  }
+
+  Future<List<Category>> getCategoriesByType(String userId, String type) {
+    return (select(categories)
+          ..where(
+            (c) =>
+                c.userId.equals(userId) &
+                c.type.equals(type) &
+                c.isDeleted.equals(false),
+          )
+          ..orderBy([(c) => OrderingTerm.asc(c.name)]))
+        .get();
+  }
+
+  Future<int> countCategories(String userId) {
+    return (select(categories)
+          ..where(
+            (c) => c.userId.equals(userId) & c.isDeleted.equals(false),
+          ))
+        .get()
+        .then((list) => list.length);
   }
 }
 

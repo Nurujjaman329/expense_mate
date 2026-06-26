@@ -171,7 +171,7 @@ flutter analyze
 | Phase | Scope | Status |
 |-------|--------|--------|
 | 1 | Foundation, auth, core UI, Drift DB, sync engine | Done |
-| 2 | Transactions, wallets, categories | Planned |
+| 2 | Transactions, wallets, categories | Done |
 | 3 | Dashboard with real data & charts | Planned |
 | 4 | Budgets, savings, goals | Planned |
 | 5 | Reports, bills, notifications | Planned |

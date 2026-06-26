@@ -1,3 +1,4 @@
+import 'package:expense_mate/core/constants/app_enums.dart';
 import 'package:expense_mate/core/routes/route_names.dart';
 import 'package:expense_mate/features/authentication/presentation/pages/email_verification_page.dart';
 import 'package:expense_mate/features/authentication/presentation/pages/forgot_password_page.dart';
@@ -6,13 +7,18 @@ import 'package:expense_mate/features/authentication/presentation/pages/onboardi
 import 'package:expense_mate/features/authentication/presentation/pages/register_page.dart';
 import 'package:expense_mate/features/authentication/presentation/pages/splash_page.dart';
 import 'package:expense_mate/features/authentication/presentation/providers/auth_provider.dart';
+import 'package:expense_mate/features/categories/presentation/pages/categories_page.dart';
 import 'package:expense_mate/features/dashboard/presentation/pages/dashboard_page.dart';
+import 'package:expense_mate/features/dashboard/presentation/pages/main_shell_page.dart';
+import 'package:expense_mate/features/transactions/presentation/pages/add_transaction_page.dart';
+import 'package:expense_mate/features/transactions/presentation/pages/transactions_page.dart';
+import 'package:expense_mate/features/wallet/presentation/pages/add_wallet_page.dart';
+import 'package:expense_mate/features/wallet/presentation/pages/wallets_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
-
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
 
@@ -73,9 +79,64 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: RouteNames.emailVerification,
         builder: (context, state) => const EmailVerificationPage(),
       ),
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) {
+          return MainShellPage(navigationShell: navigationShell);
+        },
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: RouteNames.dashboard,
+                builder: (context, state) => const DashboardPage(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: RouteNames.transactions,
+                builder: (context, state) => const TransactionsPage(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: RouteNames.wallets,
+                builder: (context, state) => const WalletsPage(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: RouteNames.categories,
+                builder: (context, state) => const CategoriesPage(),
+              ),
+            ],
+          ),
+        ],
+      ),
       GoRoute(
-        path: RouteNames.dashboard,
-        builder: (context, state) => const DashboardPage(),
+        path: RouteNames.addTransaction,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) {
+          final typeParam = state.uri.queryParameters['type'];
+          final id = state.uri.queryParameters['id'];
+          final type = typeParam != null
+              ? TransactionType.values.byName(typeParam)
+              : TransactionType.expense;
+          return AddTransactionPage(
+            transactionId: id,
+            initialType: type,
+          );
+        },
+      ),
+      GoRoute(
+        path: RouteNames.addWallet,
+        parentNavigatorKey: rootNavigatorKey,
+        builder: (context, state) => const AddWalletPage(),
       ),
     ],
   );
