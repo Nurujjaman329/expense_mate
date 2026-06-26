@@ -1,0 +1,89 @@
+name: expense_mate
+description: Production-ready expense tracker and personal finance application.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # State Management
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+
+  # Routing
+  go_router: ^14.8.1
+
+  # Networking
+  dio: ^5.8.0+1
+
+  # Firebase
+  firebase_core: ^3.13.0
+  firebase_auth: ^5.5.2
+  cloud_firestore: ^5.6.6
+  firebase_storage: ^12.4.5
+  firebase_messaging: ^15.2.5
+  firebase_analytics: ^11.4.5
+  firebase_crashlytics: ^4.3.5
+  firebase_remote_config: ^5.4.3
+  firebase_app_check: ^0.3.2+5
+
+  # Authentication providers
+  google_sign_in: ^6.3.0
+  sign_in_with_apple: ^6.1.4
+  crypto: ^3.0.6
+
+  # Local database
+  drift: ^2.26.0
+  sqlite3_flutter_libs: ^0.5.31
+  path_provider: ^2.1.5
+  path: ^1.9.1
+
+  # Serialization
+  freezed_annotation: ^3.0.0
+  json_annotation: ^4.9.0
+
+  # Charts
+  fl_chart: ^0.70.2
+
+  # Utilities
+  intl: ^0.20.2
+  image_picker: ^1.1.2
+  file_picker: ^9.2.1
+  permission_handler: ^11.4.0
+  flutter_local_notifications: ^19.0.0
+  connectivity_plus: ^6.1.4
+  shared_preferences: ^2.5.3
+  uuid: ^4.5.1
+  equatable: ^2.0.7
+
+  # UI
+  flutter_animate: ^4.5.2
+  shimmer: ^3.0.0
+  cached_network_image: ^3.4.1
+  google_fonts: ^6.2.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  build_runner: ^2.4.15
+  freezed: ^3.0.0
+  json_serializable: ^6.9.5
+  drift_dev: ^2.26.0
+  riverpod_generator: ^2.6.5
+  mocktail: ^1.0.4
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/icons/
